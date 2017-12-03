@@ -10,14 +10,27 @@ def turn(pos: (Int, Int), dir: (Int, Int), layerIdx: Int) = {
   val minDist = maxDist * -1
   
   pos match {
+    // start
+    case (0, 0) => (1, 0)
+    
     // Right, Bottom
     case (`maxDist`, `minDist`) => (-1, 0)
-    // Right
-    case (`maxDist`, _) => (0, -1)
     // Left, Bottom
     case (`minDist`, `minDist`) => (0, 1)
     // Left, Top
     case (`minDist`, `maxDist`) => (1, 0)
+    // Right, Top
+    case (`maxDist`, `maxDist`) => (1, 0)
+    
+    // Right Side
+    case (`maxDist`, _) => (0, -1)
+    // Bottom Side
+    case (_, `minDist`) => (-1, 0)
+    // Left Side
+    case (`minDist`, _) => (0, 1)
+    // Top Side
+    case (_, `maxDist`) => (1, 0)
+    
     // No change
     case _ => dir
   }
@@ -49,12 +62,12 @@ def relativePosition(idx: Int): (Int, Int) = {
   var pos = (layerIdx - 1, if (layerIdx > 1) layerIdx - 2 else 0)
   
   var i = square(layerSide - 2) + 1
-  var dir = (0, -1)
+  var dir = (0, 0)
   
   while (i < idx) {
     i += 1
-    pos = nextPosition(pos, dir)
     dir = turn(pos, dir, layerIdx)
+    pos = nextPosition(pos, dir)
   }
   
   pos
@@ -70,88 +83,82 @@ def printMemory(layerIdx: Int, values: mutable.Map[(Int, Int), Int]) = {
   val maxDist = layerIdx - 1
   val minDist = maxDist * -1
   
-  for (y <-  minDist to maxDist) {
+  for (y <-  (minDist to maxDist).reverse) {
     for (x <-  minDist to maxDist) {
       // print(s"($x / $y)  ")
       val pos = (x, y)
       if (values.isDefinedAt(pos)) {
         val value = values(pos)
-        print("% 3d  ".format(value))
+        print("% 7d  ".format(value))
       } else {
-        print("     ")
+        print("         ")
       }
     }
     println("")
   }
 }
 
+def getMemory(pos: (Int, Int), values: mutable.Map[(Int, Int), Int]): Int = {
+  if (values.isDefinedAt(pos)) values(pos) else 0
+}
 
-// for (i:Int <- 1 to 23) println(s"$i => " + steps(i))
+def nextNumber(pos: (Int, Int), values: mutable.Map[(Int, Int), Int]): Int = {
+  
+  var number = 0
+  
+  
+  for (x <- -1 to 1) {
+    for (y <- -1 to 1) {
+      if (!(x == 0 && y == 0)) {
+        number += getMemory((pos._1 + x, pos._2 + y), values)
+      }
+    }
+  }
+  
+  number
+}
 
 assert(steps(   1) ==  0, "steps(   1) =  0")
 assert(steps(  12) ==  3, "steps(  12) =  3")
 assert(steps(  23) ==  2, "steps(  23) =  2")
 assert(steps(1024) == 31, "steps(1024) = 31")
+assert(steps(325489) == 552, "steps(325489) = 552")
 
-println(s"steps: " + steps(325489))
+def runPart1() = {
+  println(s"Part I : " + steps(325489))
+}
+def runPart2() = {
+  val memory: mutable.Map[(Int, Int), Int] = mutable.Map()
+  var idx = 1
+  var number = 1
+  var pos = (0, 0)
+  var dir = (0, 0)
 
-
-// println("Layer 1")
-// printMemory(1, Map(
-//   (0, 0) -> 1
-// ))
-// println("")
-
-// println("Layer 2")
-// printMemory(2, Map(
-//   (-1, -1) -> 1,
-//   ( 0, -1) -> 2,
-//   ( 1, -1) -> 3,
-//   (-1,  0) -> 4,
-//   ( 0,  0) -> 5,
-//   ( 1,  0) -> 6,
-//   (-1,  1) -> 7,
-//   ( 0,  1) -> 8,
-//   ( 1,  1) -> 9
-// ))
-
-
-val memory: mutable.Map[(Int, Int), Int] = mutable.Map()
-var idx = 1
-var number = 0
-var pos = (0, 0)
-var dir = (1, 0)
-
-// 325489
-while (number <= 12) {
-  memory(pos) = number
-  val (layerIdx, _) = layer(idx);
-  
-  
-  
-  
-  println(s"Layer $idx : $layerIdx ($pos => $dir)")
-  printMemory(layerIdx, memory)
-  
-  
-  number += 1
-  idx += 1
-  
-  if (idx == 2) {
-    dir = (0, 1)
-  } else {
+  var continue = true
+  // 325489
+  while (continue) {
+    memory(pos) = number
+    val (layerIdx, _) = layer(idx);
+    
+    // println(s"$idx: Layer $layerIdx")
+    // printMemory(layerIdx, memory)
+    
+    idx += 1
+    
     dir = turn(pos, dir, layerIdx)
+    pos = nextPosition(pos, dir)
+    
+    continue = number < 325489
+    number = nextNumber(pos, memory)
   }
-  pos = nextPosition(pos, dir)
   
-  
+  println(s"Part II: $number")
 }
 
-// println("Layer 3")
-// printMemory(3)
-// 
-// println("Layer 4")
-// printMemory(4)
+
+
+runPart1
+runPart2
 
 /*
 Spiral
